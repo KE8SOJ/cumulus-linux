@@ -1,0 +1,169 @@
+* Onie
+- Boot Loader
+* Cumulus Linux
+- NOS
+- Native Linux Distribution
+- Not Proprietary
+- Not Linux Like
+- Debain Wheezy
+* Distribution
+- Binary Packages
+  - 250 Debian Packages
+  - 10 Cumulus Packages
+- Cumulus Packages
+  - Provide extra features and functiona
+- Repository
+  - cumulus (repo.cumulusnetworks.com)
+  - addon
+    - Puppet
+    - Chef
+    - Collectd
+    - Netshow
+  - testing
+    - Beta Release
+    - Release Specific Features
+    - Expiremental Applications
+  - debain-community
+    - 40,000+ Packages
+    - KVM
+    - Bandwidth Monitor
+    - Not Officially Supported
+- Quagga
+- Bird
+* Automation
+- Ansible
+  - Automate Network Configuration
+* Architecture
+- User Space 
+  - User Configures OSPF, BGP, Static Route
+- Linux Kernel
+  - Route is added to Kernel via Netlink API
+- Switchd
+  - Programs the Hardware
+  - Netlink message is translated into a format that the Broadcom ASIC understands
+  - Extracts information from Hardware
+* Cumulus VX
+- Cumulus VX helps you learn and become familiar with Cumulus Linux technology
+* Configuration
+** Defaults
+- Username: cumulus
+- Password CumulusLinux!
+- Interface eth0: Management
+- Interface lo: loopback
+
+** Interfaces
+- Create Network Interfaces
+#+begin_src /etc/network/interfaces
+auto swp1
+iface swp1
+
+auto swp2
+iface swp2
+ bridge-access 100 #VLAN
+#+end_src
+
+- Bring Interfaces Up
+#+begin_src
+ifreload -a
+#+end_src
+
+** Layer 2
+- Configure bridge
+#+begin_src
+auto bridge
+iface bridge
+ bridge-vlan-aware yes
+ bridge-ports swp1 swp2
+ bridge pvid 1 #Default VLAN
+ bridge-vids 100 200 #VLANs
+ bridge-stp on
+#+end_src
+
+- Show bridges
+#+begin_src
+brctl show
+#+end_src
+
+- Show spanning-tree
+#+begin_src
+mstpctl showport bridge
+mstpctl showbridge
+#+end_src
+
+** Layer 3
+#+begin_src
+ auto bridge.1
+iface bridge.1
+ address 10.1.1.1/24
+#+end_src
+
+#+begin_src
+auto bridge.100
+iface bridge.100
+ addrss 10.1.100.1/24
+#+end_src
+* Install Cumulus Linux
+** Components
+- DHCP Server: Allocates IP address and provides a URL for the NOS image
+- HTTP Server: Hosts a onie-installer NOS image
+- Out-of-Band Switch: Connects the bare-metals with with the DHCP and HTTP server
+** DHCP
+- The configuration file can specifiy an image for specific switches
+- This is accomplished by creating a sybolic link from the Cululus Linux Installer binary to ./onie-installer on
+  the HTTP server.
+- ONIE boots into a waterfall boot method, searching for an images version and architecture.
+** Commands
+- Show Switch Model
+#+begin_src
+sudo decode-syseeprom
+#+end_src
+
+- Show Hardware and Software
+#+begin_src
+netshow system
+#+end_src
+
+- Instruct uBoot to Boot ONIE
+#+begin_src
+run onie_bootcmd
+#+end_src
+** Access
+- Each ONIE switch has a Console and Management switchport.
+- The default Console port speed is 115200
+- SSH can be used to access the boot loader, ONIE, or NOS.
+- Root account SSH is disabled
+- The Cumulus account can gain administrative rights using the sudo command
+** License
+- Licenses are keyed by bandwidth
+- Install Cumulus Linux License
+- License can be hosted locally or from a URL
+- Switchd does a license checks when it starts
+- Cumulus Linux 2.5.3 can use the same license file for all switches.
+- Install a License File
+#+begin_src
+sudo cl-license -i <URL>
+#+end_src
+
+- Restart Switchd aft Install
+#+begin_src
+service switchd restart
+#+end_src
+
+- Show Installed License
+#+begin_src
+sudo cl-license
+#+end_src
+** Initial Config ZTP
+- Configure eth0 with a a static IP and default gateway
+- Reload interfaces
+- For true OoB the management interface eth0 can be converted to a MRF (VRF) or seperate routing table.
+- DHCP Option 239 provides a ZTP script
+- The switch checks for the existence of "CUMULUS-AUTOPROVISIONING" in the script
+- Put the provisioning line at the bottom so that the script is not corrupted
+- Once auto-provisioning runs it sets a flag so it does not run again
+** ZTP
+- Install License
+- Update and Upgrade Software
+- Install other Utilities
+- The MAC address is used for differentiating switch configuration
+
